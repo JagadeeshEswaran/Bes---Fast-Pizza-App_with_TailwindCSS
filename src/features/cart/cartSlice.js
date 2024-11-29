@@ -10,13 +10,12 @@ const cartSlice = createSlice({
   reducers: {
     addItem(state, action) {
       // action.payload = newItem
-      console.log(action.payload);
-
+      // console.log(action);
       state.cart.push(action.payload);
     },
     removeItem(state, action) {
       // action.payload = itemId
-      console.log(action.payload);
+      // console.log(action.payload);
 
       state.cart = state.cart.filter((item) => item.pizzaId !== action.payload);
     },
@@ -49,6 +48,7 @@ export const {
 
 export default cartSlice.reducer;
 
+// Custom Selectors
 export const getTotalItemsInCart = (state) =>
   state.cart.cart.reduce((acc, item) => acc + item.quantity, 0);
 

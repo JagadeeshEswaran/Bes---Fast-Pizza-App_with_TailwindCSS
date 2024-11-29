@@ -42,6 +42,7 @@ function MenuItem({ pizza }) {
               Sold out
             </p>
           )}
+
           {currentQuantity > 0 && (
             <article className="flex items-center gap-2 sm:gap-8">
               <UpdateItemQuantity

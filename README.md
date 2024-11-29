@@ -933,7 +933,7 @@ const router = createBrowserRouter([
 
 ## STEP 7 : Implementing Advanced REDUX and Advanced React Router
 
-- Setting Up Store
+- ### Setting Up Store
 
   ```js
   import { configureStore } from '@reduxjs/toolkit';
@@ -946,12 +946,13 @@ const router = createBrowserRouter([
   export default store;
   ```
 
-- Features we're going to Implement
+- ### Features we're going to Implement
 
-  - ### Feature 1 : User (State or Feature)
+  - #### Feature 1 : User (State or Feature)
 
     - We're going to need this between Header Component and CreateOrder component.
     - So lets start implementing it
+    - Create a Redux slice to manage the username state. This slice will allow updating the username when necessary.
 
       ```js
       // userSlice.js
@@ -975,60 +976,100 @@ const router = createBrowserRouter([
       export default userSlice.reducer;
       ```
 
-    - Usage of User State :
-
-      - User Creation
+    - Integrate the User Slice into the Store : Add the user slice to your Redux store.
 
       ```js
-      import { useState } from 'react';
-      import Button from '../../ui/Button';
-      import { useDispatch } from 'react-redux';
-      import { updateName } from './userSlice';
-      import { useNavigate } from 'react-router-dom';
+      // store.js
 
-      function CreateUser() {
-        const [username, setUsername] = useState('');
-        const dispatch = useDispatch();
-        const navigate = useNavigate();
+      import { configureStore } from '@reduxjs/toolkit';
+      import userReducer from './features/user/userSlice';
 
-        function handleSubmit(e) {
-          e.preventDefault();
+      const store = configureStore({
+        reducer: {
+          user: userReducer, // Register the user slice
+        },
+      });
 
-          if (!username) return;
-
-          dispatch(updateName(username));
-          navigate('/menu');
-        }
-
-        return (
-          <form onSubmit={handleSubmit}>
-            <p className="mb-4 text-sm text-stone-600 md:text-base">
-              👋 Welcome! Please start by telling us your name:
-            </p>
-
-            <input
-              type="text"
-              placeholder="Your full name"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="input mb-8 w-72"
-            />
-
-            {username !== '' && (
-              <div>
-                <Button type="primary">Start ordering</Button>
-              </div>
-            )}
-          </form>
-        );
-      }
-
-      export default CreateUser;
+      export default store;
       ```
 
-      - Reading Username:
+    - Access and Update the State in Components :
+
+      - User Creation : The CreateUser component handles user input and updates the username state in the Redux store. It also demonstrates navigation within the application after successfully setting the username. Here's a breakdown of its functionality
+
+        - Collecting User Input
+
+          - The component uses the useState hook to manage the temporary username input before committing it to the Redux store.
+          - The input is captured via a controlled form element, ensuring real-time updates to the state as the user types.
+
+        - Dispatching the Redux Action
+
+          - When the user submits the form, the handleSubmit function triggers the updateName action to update the global username state in the Redux store.
+
+        - Routing the User
+
+          - After successfully updating the username, the component uses the useNavigate hook from React Router to navigate the user to the /menu route.
+
+        - Conditional Rendering of the Button
+
+          - The submit button is displayed only when the username is not an empty string, providing a clean user experience by preventing unnecessary submissions.
+
+          ```js
+          // CreateUser.jsx
+
+          import { useState } from 'react';
+          import Button from '../../ui/Button';
+          import { useDispatch } from 'react-redux';
+          import { updateName } from './userSlice';
+          import { useNavigate } from 'react-router-dom';
+
+          function CreateUser() {
+            const [username, setUsername] = useState('');
+            const dispatch = useDispatch();
+            const navigate = useNavigate();
+
+            function handleSubmit(e) {
+              e.preventDefault();
+
+              if (!username) return;
+
+              dispatch(updateName(username)); //  Dispatching the Redux Action
+              navigate('/menu'); //  Routing the User
+            }
+
+            return (
+              <form onSubmit={handleSubmit}>
+                <p className="mb-4 text-sm text-stone-600 md:text-base">
+                  👋 Welcome! Please start by telling us your name:
+                </p>
+                // Collection User Information
+                <input
+                  type="text"
+                  placeholder="Your full name"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="input mb-8 w-72"
+                />
+                // Conditional Rendering of the Button
+                {username !== '' && (
+                  <div>
+                    <Button type="primary">Start ordering</Button>
+                  </div>
+                )}
+              </form>
+            );
+          }
+
+          export default CreateUser;
+          ```
+
+      - Reading Username: This section demonstrates how to read and display the username state managed in Redux across various components in your application. These examples highlight different use cases for accessing the global username state, such as displaying it in the UI, personalizing messages, and using it as a default value in forms.
 
         - @ Username.jsx
+
+          - Purpose: Displays the username in the header or other sections of the app, provided the user has entered their name. If the username is empty, the component renders nothing (null).
+
+          - Key Features:Accesses the username state using the useSelector hook. Hides itself if no username is available, ensuring clean UI.
 
           ```js
           import { useSelector } from 'react-redux';
@@ -1048,7 +1089,11 @@ const router = createBrowserRouter([
           export default Username;
           ```
 
-        - @ Cart.jsx
+        - @ Cart.jsx :
+
+          - Purpose: Personalizes the cart page by including the username in the header. This enhances the user experience by addressing the user by name while they review their cart.
+
+          - Key Features: Dynamically inserts the username in the cart message using useSelector. Iterates through cart items (mocked with fakeCart) to display details.
 
           ```js
           function Cart() {
@@ -1069,40 +1114,66 @@ const router = createBrowserRouter([
 
           ```
 
-        - @ CreateOrder.jsx
+        - @ CreateOrder.jsx :
 
-        ```js
+          - Purpose: Utilizes the username as a pre-filled value in the order form's customer name field. If no username is available, the input remains empty but required.
+
+          - Key Features:
+            - Dynamically populates the "First Name" field with the username from Redux.
+            - Integrates form handling for new orders and uses fake cart data (fakeCart) as a placeholder.
+            - Reacts to navigation state (useNavigation) to manage form submission states.
+
+          ```js
             function CreateOrder() {
-            const { username } = useSelector((state) => state.user);
-            const navigation = useNavigation();
-            const isSubmitting = navigation.state === 'submitting';
+                const { username } = useSelector((state) => state.user);
+                const navigation = useNavigation();
+                const isSubmitting = navigation.state === 'submitting';
 
-            const formErrors = useActionData();
+                const formErrors = useActionData();
 
-            // const [withPriority, setWithPriority] = useState(false);
-            const cart = fakeCart;
+                // const [withPriority, setWithPriority] = useState(false);
+                const cart = fakeCart;
 
-            return (
-                <div className="px-4 py-6">
-                <h2 className="mb-8 text-xl font-semibold">Ready to order? Let's go!</h2>
+                return (
+                    <div className="px-4 py-6">
+                    <h2 className="mb-8 text-xl font-semibold">Ready to order? Let's go!</h2>
 
-                {/* <Form method="POST" action="/order/new"> */}
-                <Form method="POST">
-                    <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <label className="sm:basis-40">First Name</label>
-                    <input
-                        className="input grow"
-                        type="text"
-                        name="customer"
-                        defaultValue={username ? username : ''}
-                        required
-                    />
-                    </div>
-        ```
+                    {/* <Form method="POST" action="/order/new"> */}
+                    <Form method="POST">
+                        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <label className="sm:basis-40">First Name</label>
+                        <input
+                            className="input grow"
+                            type="text"
+                            name="customer"
+                            defaultValue={username ? username : ''}
+                            required
+                        />
+                        </div>
+          ```
 
-  - ### Feature 2 : Cart (State or Feature)
+  - #### Feature 2 : Cart (State or Feature)
 
-    - Creating Cart Slice
+    The Cart feature is designed to manage cart-related functionalities in your application using Redux. It includes actions for adding, removing, updating, and clearing items in the cart, providing a robust and centralized system for cart management.
+
+    - Key Functionalities of the Cart Slice
+      - Initial State:
+        - The cart state is initialized with a sample item for demonstration purposes.
+        - This can be replaced with an empty cart (cart: []) in production.
+    - Reducers for Cart Actions: The cartSlice defines multiple reducers to handle cart operations effectively.
+
+      - a. Add an Item to the Cart
+        - Adds a new item (action.payload) to the cart array.
+      - b. Remove an Item from the Cart
+        - Removes an item from the cart by filtering out the item with the specified pizzaId.
+      - c. Clear the Cart
+        - Resets the cart to an empty array.
+      - d. Increment Item Quantity
+        - Finds the item in the cart by its pizzaId and increases its quantity by 1.
+        - Updates the totalPrice accordingly.
+      - e. Decrement Item Quantity
+        - Finds the item in the cart by its pizzaId and decreases its quantity by 1.
+        - Updates the totalPrice accordingly.
 
       ```js
       import { createSlice } from '@reduxjs/toolkit';
@@ -1238,9 +1309,25 @@ const router = createBrowserRouter([
       export default MenuItem;
       ```
 
-    - Total Pizza Count & Cart Amout
+    - Total Pizza Count & Cart Amout : When building a cart overview in a shopping cart application, two critical metrics are typically displayed:
 
-      - Approach 1:
+      - Total Pizza Count: The total number of pizzas (or items) in the cart.
+      - Cart Amount: The total monetary value of all items in the cart.
+
+      - Approach 1: Direct Computation in Component
+
+        - How It Works:
+
+          - useSelector is used to directly compute the total pizza count and total cart amount by iterating through the cart state inside the component.
+          - Both metrics are calculated using the reduce method.
+
+        - Advantages:
+          - Simple and straightforward for small applications.
+          - Avoids the need to define extra selectors in the Redux slice.
+        - Disadvantages:
+          - Logic is repeated if the same calculations are needed in multiple components.
+          - Reduces reusability and violates the DRY (Don't Repeat Yourself) principle.
+          - If the cart grows in complexity, the code can become harder to maintain.
 
         ```js
         import { useSelector } from 'react-redux';
@@ -1268,7 +1355,19 @@ const router = createBrowserRouter([
         export default CartOverview;
         ```
 
-      - Approach 2:
+      - Approach 2: Using Memoized Selectors
+
+        - How It Works:
+
+          - The logic for calculating total items and total amount is abstracted into reusable selectors within the cartSlice.
+          - These selectors are imported and used with useSelector in the component.
+
+        - Advantages:
+          - Reusability: Selectors can be reused across multiple components, reducing code duplication.
+          - Encapsulation: Cart logic is abstracted away from the component, making the component simpler and cleaner.
+          - Readability: The component code is more readable and focused on UI rendering.
+        - Disadvantages:
+          - Slightly more initial setup required (defining selectors in the slice).
 
         ```js
         import { useSelector } from 'react-redux';
@@ -1293,33 +1392,40 @@ const router = createBrowserRouter([
         export default CartOverview;
         ```
 
-      - CartOverview.jsx Final
+    - CartOverview.jsx Final:
 
-        ```js
-        import { useSelector } from 'react-redux';
-        import { Link } from 'react-router-dom';
-        import { getTotalCartValue, getTotalItemsInCart } from './cartSlice';
-        import { formatCurrency } from '../../utils/helpers';
+      The CartOverview component provides a concise summary of the cart, displaying the total number of pizzas and the total cart value. It uses Redux selectors (getTotalItemsInCart and getTotalCartValue) to retrieve the required data from the store. The cart value is formatted using the formatCurrency utility function.
 
-        function CartOverview() {
-          const pizzaCount = useSelector(getTotalItemsInCart);
-          const totalAmount = useSelector(getTotalCartValue);
+      - Key Features:
+        - Conditional Rendering: Hides the component if the cart is empty (pizzaCount === 0).
+        - Dynamic Data: Fetches pizza count and total amount directly from the Redux store.
+        - User Navigation: Includes a link to open the full cart view.
 
-          if (pizzaCount === 0) return null;
+      ```js
+      import { useSelector } from 'react-redux';
+      import { Link } from 'react-router-dom';
+      import { getTotalCartValue, getTotalItemsInCart } from './cartSlice';
+      import { formatCurrency } from '../../utils/helpers';
 
-          return (
-            <div className="flex items-center justify-between bg-stone-800 px-4 py-4 text-sm uppercase text-stone-200 sm:px-6 md:text-base">
-              <p className="space-x-4 font-semibold text-stone-300 sm:space-x-6">
-                <span>{pizzaCount} pizzas</span>
-                <span>{formatCurrency(totalAmount)}</span>
-              </p>
-              <Link to="/cart">Open cart &rarr;</Link>
-            </div>
-          );
-        }
+      function CartOverview() {
+        const pizzaCount = useSelector(getTotalItemsInCart);
+        const totalAmount = useSelector(getTotalCartValue);
 
-        export default CartOverview;
-        ```
+        if (pizzaCount === 0) return null;
+
+        return (
+          <div className="flex items-center justify-between bg-stone-800 px-4 py-4 text-sm uppercase text-stone-200 sm:px-6 md:text-base">
+            <p className="space-x-4 font-semibold text-stone-300 sm:space-x-6">
+              <span>{pizzaCount} pizzas</span>
+              <span>{formatCurrency(totalAmount)}</span>
+            </p>
+            <Link to="/cart">Open cart &rarr;</Link>
+          </div>
+        );
+      }
+
+      export default CartOverview;
+      ```
 
       - Cart.jsx - Replacing fakeCart
 
@@ -1363,268 +1469,106 @@ const router = createBrowserRouter([
         export default Cart;
         ```
 
-    - Clear Cart Functionality @ Cart.jsx
+  - Clear Cart Functionality @ Cart.jsx
 
-      ```HTML
-          <Button type="secondary" onClick={() => dispatch(clearCart())}>
-              Clear cart
-          </Button>
+    ```JSX
+        <Button type="secondary" onClick={() => dispatch(clearCart())}>
+            Clear cart
+        </Button>
+    ```
+
+    - Cart.jsx - Final
+
+      ```js
+      import { Link } from 'react-router-dom';
+      import LinkButton from '../../ui/LinkButton';
+      import Button from '../../ui/Button';
+      import CartItem from './CartItem';
+      import { useDispatch, useSelector } from 'react-redux';
+      import { clearCart, getCart } from './cartSlice';
+      import EmptyCart from './EmptyCart';
+
+      function Cart() {
+        const { username } = useSelector((state) => state.user);
+        const cart = useSelector(getCart);
+        const dispatch = useDispatch();
+
+        if (!cart.length) return <EmptyCart />;
+
+        return (
+          <div className="px-4 py-3">
+            <LinkButton to="/menu">&larr; Back to menu</LinkButton>
+
+            <h2 className="fontf-semibold mt-7 text-xl">
+              Your cart, {username}
+            </h2>
+
+            <ul className="mt-3 divide-y divide-stone-200 border-b">
+              {cart.map((item) => (
+                <CartItem item={item} key={item.key} />
+              ))}
+            </ul>
+
+            <div className="mt-6 space-x-2">
+              <Button to="/order/new" type="primary">
+                Order pizzas
+              </Button>
+
+              <Button type="secondary" onClick={() => dispatch(clearCart())}>
+                Clear cart
+              </Button>
+            </div>
+          </div>
+        );
+      }
+
+      export default Cart;
       ```
 
-      - Cart.jsx - Final
+  - Delete Item Functionality
 
-        ```js
-        import { Link } from 'react-router-dom';
-        import LinkButton from '../../ui/LinkButton';
-        import Button from '../../ui/Button';
-        import CartItem from './CartItem';
-        import { useDispatch, useSelector } from 'react-redux';
-        import { clearCart, getCart } from './cartSlice';
-        import EmptyCart from './EmptyCart';
+    - Deleting Item from Cart - CartItem.jsx
 
-        function Cart() {
-          const { username } = useSelector((state) => state.user);
-          const cart = useSelector(getCart);
-          const dispatch = useDispatch();
+      ```js
+      import { useDispatch } from 'react-redux';
+      import Button from '../../ui/Button';
+      import { formatCurrency } from '../../utils/helpers';
+      import { removeItem } from './cartSlice';
+      import DeleteItem from './DeleteItem';
 
-          if (!cart.length) return <EmptyCart />;
+      function CartItem({ item }) {
+        const dispatch = useDispatch();
+        const { pizzaId, name, quantity, totalPrice } = item;
 
-          return (
-            <div className="px-4 py-3">
-              <LinkButton to="/menu">&larr; Back to menu</LinkButton>
+        return (
+          <li className="py-3 sm:flex sm:items-center sm:justify-between">
+            <p className="mb-1 sm:mb-0">
+              {quantity}&times; {name}
+            </p>
+            <div className="flex items-center justify-between sm:gap-6">
+              <p className="text-sm font-bold">{formatCurrency(totalPrice)}</p>
 
-              <h2 className="fontf-semibold mt-7 text-xl">
-                Your cart, {username}
-              </h2>
+              {/* <Button type="small" onClick={() => dispatch(removeItem(pizzaId))}>
+                  Delete
+                  </Button> */}
 
-              <ul className="mt-3 divide-y divide-stone-200 border-b">
-                {cart.map((item) => (
-                  <CartItem item={item} key={item.key} />
-                ))}
-              </ul>
-
-              <div className="mt-6 space-x-2">
-                <Button to="/order/new" type="primary">
-                  Order pizzas
-                </Button>
-
-                <Button type="secondary" onClick={() => dispatch(clearCart())}>
-                  Clear cart
-                </Button>
-              </div>
+              <DeleteItem onClick={() => dispatch(removeItem(pizzaId))} />
             </div>
-          );
-        }
+          </li>
+        );
+      }
 
-        export default Cart;
-        ```
+      export default CartItem;
+      ```
 
-    - Delete Item Functionality
+    - Deleting Item from Cart - MenuItem.jsx
 
-      - Deleting Item from Cart - CartItem.jsx
-
-        ```js
-        import { useDispatch } from 'react-redux';
-        import Button from '../../ui/Button';
-        import { formatCurrency } from '../../utils/helpers';
-        import { removeItem } from './cartSlice';
-        import DeleteItem from './DeleteItem';
-
-        function CartItem({ item }) {
-          const dispatch = useDispatch();
-          const { pizzaId, name, quantity, totalPrice } = item;
-
-          return (
-            <li className="py-3 sm:flex sm:items-center sm:justify-between">
-              <p className="mb-1 sm:mb-0">
-                {quantity}&times; {name}
-              </p>
-              <div className="flex items-center justify-between sm:gap-6">
-                <p className="text-sm font-bold">
-                  {formatCurrency(totalPrice)}
-                </p>
-
-                {/* <Button type="small" onClick={() => dispatch(removeItem(pizzaId))}>
-                    Delete
-                    </Button> */}
-
-                <DeleteItem onClick={() => dispatch(removeItem(pizzaId))} />
-              </div>
-            </li>
-          );
-        }
-
-        export default CartItem;
-        ```
-
-      - Deleting Item from Cart - MenuItem.jsx
-
-        - Reducer to get Item Quantity By ID
-          ```js
-          export const getCurrentQuantityByID = (id) => (state) =>
-            state.cart.cart.find((item) => item.pizzaId === id)?.quantity ?? 0;
-          ```
-        - Conditionally rendering Delete and Add to Cart Buttons
-
-          ```js
-          import { useDispatch, useSelector } from 'react-redux';
-          import Button from '../../ui/Button';
-          import { formatCurrency } from '../../utils/helpers';
-          import {
-            addItem,
-            getCurrentQuantityByID,
-            removeItem,
-          } from '../cart/cartSlice';
-          import DeleteItem from '../cart/DeleteItem';
-
-          function MenuItem({ pizza }) {
-            const dispatch = useDispatch();
-            const { id, name, unitPrice, ingredients, soldOut, imageUrl } =
-              pizza;
-            const currentQuantity = useSelector(getCurrentQuantityByID(id));
-
-            const handleAddtoCart = () => {
-              const newItem = {
-                pizzaId: id,
-                name,
-                quantity: 1,
-                unitPrice,
-                totalPrice: 1 * unitPrice,
-              };
-
-              dispatch(addItem(newItem));
-            };
-
-            return (
-              <li className="flex gap-4 py-2">
-                <img
-                  src={imageUrl}
-                  alt={name}
-                  className={`h-24 ${soldOut ? 'opacity-70 grayscale' : ''}`}
-                />
-                <div className="flex grow flex-col pt-0.5">
-                  <p className="font-medium">{name}</p>
-                  <p className="text-sm capitalize italic text-stone-500">
-                    {ingredients.join(', ')}
-                  </p>
-                  <div className="mt-auto flex items-center justify-between">
-                    {!soldOut ? (
-                      <p className="text-sm">{formatCurrency(unitPrice)}</p>
-                    ) : (
-                      <p className="text-sm font-medium uppercase text-stone-500">
-                        Sold out
-                      </p>
-                    )}
-
-                    {currentQuantity > 0 ? (
-                      <DeleteItem onClick={() => dispatch(removeItem(id))} />
-                    ) : (
-                      !soldOut && (
-                        <Button type="small" onClick={handleAddtoCart}>
-                          Add to cart
-                        </Button>
-                      )
-                    )}
-                  </div>
-                </div>
-              </li>
-            );
-          }
-
-          export default MenuItem;
-          ```
-
-    - Modifying Cart Item Quantity
-
-      - Getting the Current Quantity of Item
-
+      - Reducer to get Item Quantity By ID
         ```js
         export const getCurrentQuantityByID = (id) => (state) =>
           state.cart.cart.find((item) => item.pizzaId === id)?.quantity ?? 0;
         ```
-
-      - UpdateItemQuantity.jsx - Updating (Increasing or Reducing Item quantity in the Cart)
-
-        ```js
-        import React from 'react';
-        import Button from '../../ui/Button';
-        import { useDispatch } from 'react-redux';
-        import {
-          decrementItemQuantity,
-          incrementItemQuantity,
-          removeItem,
-        } from './cartSlice';
-
-        const UpdateItemQuantity = ({ pizzaId, currentQuantity }) => {
-          const dispatch = useDispatch();
-
-          return (
-            <div className="flex items-center gap-1 md:gap-3">
-              <Button
-                type="round"
-                onClick={() => dispatch(decrementItemQuantity(pizzaId))}
-              >
-                -
-              </Button>
-
-              <span className="text-sm font-bold">{currentQuantity}</span>
-
-              <Button
-                type="round"
-                onClick={() => dispatch(incrementItemQuantity(pizzaId))}
-              >
-                +
-              </Button>
-            </div>
-          );
-        };
-
-        export default UpdateItemQuantity;
-        ```
-
-      - Adding Update Quantity component to CartItem.jsx
-
-        ```js
-        import { useDispatch } from 'react-redux';
-        import Button from '../../ui/Button';
-        import { formatCurrency } from '../../utils/helpers';
-        import { getCurrentQuantityByID, removeItem } from './cartSlice';
-        import DeleteItem from './DeleteItem';
-        import UpdateItemQuantity from './UpdateItemQuantity';
-
-        function CartItem({ item }) {
-          const dispatch = useDispatch();
-          const { pizzaId, name, quantity, totalPrice } = item;
-
-          return (
-            <li className="py-3 sm:flex sm:items-center sm:justify-between">
-              <p className="mb-1 sm:mb-0">
-                {quantity}&times; {name}
-              </p>
-              <div className="flex items-center justify-between sm:gap-6">
-                <p className="text-sm font-bold">
-                  {formatCurrency(totalPrice)}
-                </p>
-
-                {/* <Button type="small" onClick={() => dispatch(removeItem(pizzaId))}>
-                    Delete
-                    </Button> */}
-
-                <UpdateItemQuantity
-                  pizzaId={pizzaId}
-                  currentQuantity={quantity}
-                />
-
-                <DeleteItem onClick={() => dispatch(removeItem(pizzaId))} />
-              </div>
-            </li>
-          );
-        }
-
-        export default CartItem;
-        ```
-
-      - Adding Update Quantity component to MenuItem.jsx
+      - Conditionally rendering Delete and Add to Cart Buttons
 
         ```js
         import { useDispatch, useSelector } from 'react-redux';
@@ -1636,7 +1580,6 @@ const router = createBrowserRouter([
           removeItem,
         } from '../cart/cartSlice';
         import DeleteItem from '../cart/DeleteItem';
-        import UpdateItemQuantity from '../cart/UpdateItemQuantity';
 
         function MenuItem({ pizza }) {
           const dispatch = useDispatch();
@@ -1675,20 +1618,15 @@ const router = createBrowserRouter([
                       Sold out
                     </p>
                   )}
-                  {currentQuantity > 0 && (
-                    <>
-                      <UpdateItemQuantity
-                        pizzaId={id}
-                        currentQuantity={currentQuantity}
-                      />
-                      <DeleteItem onClick={() => dispatch(removeItem(id))} />
-                    </>
-                  )}
 
-                  {!soldOut && !currentQuantity > 0 && (
-                    <Button type="small" onClick={handleAddtoCart}>
-                      Add to cart
-                    </Button>
+                  {currentQuantity > 0 ? (
+                    <DeleteItem onClick={() => dispatch(removeItem(id))} />
+                  ) : (
+                    !soldOut && (
+                      <Button type="small" onClick={handleAddtoCart}>
+                        Add to cart
+                      </Button>
+                    )
                   )}
                 </div>
               </div>
@@ -1699,4 +1637,443 @@ const router = createBrowserRouter([
         export default MenuItem;
         ```
 
-  - ### Feature 3 : Order
+  - Modifying Cart Item Quantity
+
+    - Getting the Current Quantity of Item
+
+      ```js
+      export const getCurrentQuantityByID = (id) => (state) =>
+        state.cart.cart.find((item) => item.pizzaId === id)?.quantity ?? 0;
+      ```
+
+    - UpdateItemQuantity.jsx - Updating (Increasing or Reducing Item quantity in the Cart)
+
+      ```js
+      import React from 'react';
+      import Button from '../../ui/Button';
+      import { useDispatch } from 'react-redux';
+      import {
+        decrementItemQuantity,
+        incrementItemQuantity,
+        removeItem,
+      } from './cartSlice';
+
+      const UpdateItemQuantity = ({ pizzaId, currentQuantity }) => {
+        const dispatch = useDispatch();
+
+        return (
+          <div className="flex items-center gap-1 md:gap-3">
+            <Button
+              type="round"
+              onClick={() => dispatch(decrementItemQuantity(pizzaId))}
+            >
+              -
+            </Button>
+
+            <span className="text-sm font-bold">{currentQuantity}</span>
+
+            <Button
+              type="round"
+              onClick={() => dispatch(incrementItemQuantity(pizzaId))}
+            >
+              +
+            </Button>
+          </div>
+        );
+      };
+
+      export default UpdateItemQuantity;
+      ```
+
+    - Adding Update Quantity component to CartItem.jsx
+
+      ```js
+      import { useDispatch } from 'react-redux';
+      import Button from '../../ui/Button';
+      import { formatCurrency } from '../../utils/helpers';
+      import { getCurrentQuantityByID, removeItem } from './cartSlice';
+      import DeleteItem from './DeleteItem';
+      import UpdateItemQuantity from './UpdateItemQuantity';
+
+      function CartItem({ item }) {
+        const dispatch = useDispatch();
+        const { pizzaId, name, quantity, totalPrice } = item;
+
+        return (
+          <li className="py-3 sm:flex sm:items-center sm:justify-between">
+            <p className="mb-1 sm:mb-0">
+              {quantity}&times; {name}
+            </p>
+            <div className="flex items-center justify-between sm:gap-6">
+              <p className="text-sm font-bold">{formatCurrency(totalPrice)}</p>
+
+              {/* <Button type="small" onClick={() => dispatch(removeItem(pizzaId))}>
+                  Delete
+                  </Button> */}
+
+              <UpdateItemQuantity
+                pizzaId={pizzaId}
+                currentQuantity={quantity}
+              />
+
+              <DeleteItem onClick={() => dispatch(removeItem(pizzaId))} />
+            </div>
+          </li>
+        );
+      }
+
+      export default CartItem;
+      ```
+
+    - Adding Update Quantity component to MenuItem.jsx
+
+      ```js
+      import { useDispatch, useSelector } from 'react-redux';
+      import Button from '../../ui/Button';
+      import { formatCurrency } from '../../utils/helpers';
+      import {
+        addItem,
+        getCurrentQuantityByID,
+        removeItem,
+      } from '../cart/cartSlice';
+      import DeleteItem from '../cart/DeleteItem';
+      import UpdateItemQuantity from '../cart/UpdateItemQuantity';
+
+      function MenuItem({ pizza }) {
+        const dispatch = useDispatch();
+        const { id, name, unitPrice, ingredients, soldOut, imageUrl } = pizza;
+        const currentQuantity = useSelector(getCurrentQuantityByID(id));
+
+        const handleAddtoCart = () => {
+          const newItem = {
+            pizzaId: id,
+            name,
+            quantity: 1,
+            unitPrice,
+            totalPrice: 1 * unitPrice,
+          };
+
+          dispatch(addItem(newItem));
+        };
+
+        return (
+          <li className="flex gap-4 py-2">
+            <img
+              src={imageUrl}
+              alt={name}
+              className={`h-24 ${soldOut ? 'opacity-70 grayscale' : ''}`}
+            />
+            <div className="flex grow flex-col pt-0.5">
+              <p className="font-medium">{name}</p>
+              <p className="text-sm capitalize italic text-stone-500">
+                {ingredients.join(', ')}
+              </p>
+              <div className="mt-auto flex items-center justify-between">
+                {!soldOut ? (
+                  <p className="text-sm">{formatCurrency(unitPrice)}</p>
+                ) : (
+                  <p className="text-sm font-medium uppercase text-stone-500">
+                    Sold out
+                  </p>
+                )}
+                {currentQuantity > 0 && (
+                  <>
+                    <UpdateItemQuantity
+                      pizzaId={id}
+                      currentQuantity={currentQuantity}
+                    />
+                    <DeleteItem onClick={() => dispatch(removeItem(id))} />
+                  </>
+                )}
+
+                {!soldOut && !currentQuantity > 0 && (
+                  <Button type="small" onClick={handleAddtoCart}>
+                    Add to cart
+                  </Button>
+                )}
+              </div>
+            </div>
+          </li>
+        );
+      }
+
+      export default MenuItem;
+      ```
+
+- ### Feature 3 : Order
+
+  - CreateOrder.jsx
+    The CreateOrder component facilitates the creation of an order by gathering user details, cart items, and handling the submission process. Below is a breakdown of its key elements and functionality:
+
+    - Getting User and Cart Data:
+      - Uses useSelector to retrieve the logged-in user's name (username) and cart details (cart and totalCartPrice) from the Redux store.
+    - How we Create a New order and Dispatching the create order from order action
+    - A Simple Hack : store.dispatch(clearCart());
+    - Form Handling:
+      - Collects user inputs for:
+        - Customer Name: Pre-filled with the logged-in user's name if available.
+        - Phone Number: Validated using a regex.
+        - Address: User's delivery address.
+      - Includes a checkbox for assigning priority to the order, increasing the total cost by 20% if selected.
+    - Submission Process:
+      - Handles the form submission using the useActionData and useNavigation hooks.
+      - Dispatches the order creation process to the createOrder service function.
+      - On successful order creation, clears the cart using a Redux action (clearCart) and redirects to the newly created order's page.
+    - Error Handling:
+      - Validates the phone number field and displays an error message if the input is invalid.
+    - Dynamic Price Calculation:
+      - Displays the final price dynamically, factoring in the priority surcharge if selected.
+
+    ```js
+    import { useState } from 'react';
+    import {
+      Form,
+      redirect,
+      useActionData,
+      useNavigation,
+    } from 'react-router-dom';
+    import { createOrder } from '../../services/apiRestaurant';
+    import Button from '../../ui/Button';
+    import { useSelector } from 'react-redux';
+    import { clearCart, getCart, getTotalCartValue } from '../cart/cartSlice';
+    import EmptyCart from '../cart/EmptyCart';
+    import store from '../../store';
+    import { formatCurrency } from '../../utils/helpers';
+
+    // https://uibakery.io/regex-library/phone-number
+    const isValidPhone = (str) =>
+      /^\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$/.test(
+        str
+      );
+
+    function CreateOrder() {
+      const [withPriority, setWithPriority] = useState(false);
+      const { username } = useSelector((state) => state.user);
+      const cart = useSelector(getCart);
+      const totalCartPrice = useSelector(getTotalCartValue);
+      const navigation = useNavigation();
+      const isSubmitting = navigation.state === 'submitting';
+
+      const formErrors = useActionData();
+
+      // const cart = cartData;
+
+      // console.log(cart);
+
+      if (!cart.length) return <EmptyCart />;
+
+      return (
+        <div className="px-4 py-6">
+          <h2 className="mb-8 text-xl font-semibold">
+            Ready to order? Let's go!
+          </h2>
+
+          {/* <Form method="POST" action="/order/new"> */}
+          <Form method="POST">
+            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <label className="sm:basis-40">First Name</label>
+              <input
+                className="input grow"
+                type="text"
+                name="customer"
+                defaultValue={username ? username : ''}
+                required
+              />
+            </div>
+
+            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <label className="sm:basis-40">Phone number</label>
+              <div className="grow">
+                <input
+                  className="input w-full"
+                  type="tel"
+                  name="phone"
+                  required
+                />
+                {formErrors?.phone && (
+                  <p className="mt-2 rounded-md bg-red-100 p-2 text-xs text-red-700">
+                    {formErrors.phone}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <label className="sm:basis-40">Address</label>
+              <div className="grow">
+                <input
+                  className="input w-full"
+                  type="text"
+                  name="address"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="mb-12 flex items-center gap-5">
+              <input
+                className="h-6 w-6 accent-yellow-400 focus:outline-none focus:ring focus:ring-yellow-400 focus:ring-offset-2"
+                type="checkbox"
+                name="priority"
+                id="priority"
+                value={withPriority}
+                onChange={(e) => setWithPriority(e.target.checked)}
+              />
+              <label htmlFor="priority" className="font-medium">
+                Want to yo give your order priority?
+              </label>
+            </div>
+
+            <div>
+              <input type="hidden" name="cart" value={JSON.stringify(cart)} />
+              <Button disabled={isSubmitting} type="primary">
+                {isSubmitting
+                  ? 'Placing order....'
+                  : `Order now for ${formatCurrency(
+                      totalCartPrice + (withPriority ? totalCartPrice * 0.2 : 0)
+                    )}`}
+              </Button>
+            </div>
+          </Form>
+        </div>
+      );
+    }
+
+    export async function action({ request }) {
+      const formData = await request.formData();
+      const data = Object.fromEntries(formData);
+
+      const order = {
+        ...data,
+        cart: JSON.parse(data.cart),
+        priority: data.priority === 'true',
+      };
+
+      const errors = {};
+      if (!isValidPhone(order.phone))
+        errors.phone =
+          'Please give us your correct phone number. We might need it to contact you.';
+
+      if (Object.keys(errors).length > 0) return errors;
+
+      // If everything is okay, create new order and redirect
+
+      const newOrder = await createOrder(order);
+      store.dispatch(clearCart());
+      return redirect(`/order/${newOrder.id}`);
+
+      // return null;
+    }
+
+    export default CreateOrder;
+    ```
+
+    - Highlights of Key Functionalities
+
+      1. Conditional Rendering for Empty Cart : If the cart is empty, the component renders an EmptyCart message instead of the form:
+
+      ```js
+      if (!cart.length) return <EmptyCart />;
+      ```
+
+      2. Priority Handling : The withPriority state toggles a 20% surcharge on the total cart price:
+
+      ```js
+      const [withPriority, setWithPriority] = useState(false);
+      // Final order amount
+      totalCartPrice + (withPriority ? totalCartPrice * 0.2 : 0);
+      ```
+
+      3. Validation for Phone Number : Ensures the entered phone number is valid using a regex
+
+      ```js
+      const isValidPhone = (str) =>
+        /^\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$/.test(
+          str
+        );
+
+      if (!isValidPhone(order.phone))
+        errors.phone = 'Please provide a valid phone number.';
+      ```
+
+      4. Dynamic Button Text : Displays different button text based on the form's submission state
+
+      ```jsx
+      <Button disabled={isSubmitting} type="primary">
+        {isSubmitting
+          ? 'Placing order...'
+          : `Order now for ${formatCurrency(
+              totalCartPrice + (withPriority ? totalCartPrice * 0.2 : 0)
+            )}`}
+      </Button>
+      ```
+
+    - Action Functionality : The action function handles the server-side logic when the form is submitted:
+
+      - Validates the form data.
+      - Creates a new order by calling the createOrder API.
+      - Dispatches clearCart and redirects to the order details page.
+
+  - Creating REDUX Thunk :
+
+    ```js
+    function getPosition() {
+      return new Promise(function (resolve, reject) {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+    }
+
+    // // async function fetchAddress() {
+    // //   // 1) We get the user's geolocation position
+    // //   const positionObj = await getPosition();
+    // //   const position = {
+    // //     latitude: positionObj.coords.latitude,
+    // //     longitude: positionObj.coords.longitude,
+    // //   };
+
+    // //   // 2) Then we use a reverse geocoding API to get a description of the user's address, so we can display it the order form, so that the user can correct it if wrong
+    // //   const addressObj = await getAddress(position);
+    // //   const address = `${addressObj?.locality}, ${addressObj?.city} ${addressObj?.postcode}, ${addressObj?.countryName}`;
+
+    // //   // 3) Then we return an object with the data that we are interested in
+    // //   return { position, address };
+    // // }
+
+    export const fetchAddress = createAsyncThunk(
+      'user/fetchAddress',
+      async () => {
+        // 1) We get the user's geolocation position
+        const positionObj = await getPosition();
+        const position = {
+          latitude: positionObj.coords.latitude,
+          longitude: positionObj.coords.longitude,
+        };
+
+        // 2) Then we use a reverse geocoding API to get a description of the user's address, so we can display it the order form, so that the user can correct it if wrong
+        const addressObj = await getAddress(position);
+        const address = `${addressObj?.locality}, ${addressObj?.city} ${addressObj?.postcode}, ${addressObj?.countryName}`;
+
+        // 3) Then we return an object with the data that we are interested in
+        // Payload of the FULFILLED STATE
+        return { position, address };
+      }
+    );
+    ```
+
+  - Intergratin REDUX Thunk in userSlide.jsx
+    ```js
+       extraReducers: (builder) =>
+          builder
+            .addCase(fetchAddress.pending, (state, action) => {
+              state.status = 'loading';
+            })
+            .addCase(fetchAddress.fulfilled, (state, action) => {
+              state.position = action.payload.position;
+              state.address = action.payload.address;
+              state.state = 'idle';
+            })
+            .addCase(fetchAddress.rejected, (state, action) => {
+              state.status = 'error';
+              state.error = "Error getting your address, Make sure to fill this field!";
+            }),
+    ```

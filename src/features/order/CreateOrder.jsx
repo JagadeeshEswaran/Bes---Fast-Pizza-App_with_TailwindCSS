@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Form, redirect, useActionData, useNavigation } from 'react-router-dom';
 import { createOrder } from '../../services/apiRestaurant';
 import Button from '../../ui/Button';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { clearCart, getCart, getTotalCartValue } from '../cart/cartSlice';
 import EmptyCart from '../cart/EmptyCart';
 import store from '../../store';
 import { formatCurrency } from '../../utils/helpers';
+import { fetchAddress } from '../user/userSlice';
 
 // https://uibakery.io/regex-library/phone-number
 const isValidPhone = (str) =>
@@ -17,16 +18,23 @@ const isValidPhone = (str) =>
 function CreateOrder() {
   const [withPriority, setWithPriority] = useState(false);
   const { username } = useSelector((state) => state.user);
+  const {
+    status: addressStatus,
+    address,
+    error: errorAddress,
+  } = useSelector((state) => state.user);
   const cart = useSelector(getCart);
   const totalCartPrice = useSelector(getTotalCartValue);
   const navigation = useNavigation();
+  const dispatch = useDispatch();
   const isSubmitting = navigation.state === 'submitting';
 
   const formErrors = useActionData();
 
   // const cart = cartData;
 
-  // console.log(cart);
+  // console.log(addressStatus);
+  // console.log(errorAddress);
 
   if (!cart.length) return <EmptyCart />;
 
@@ -59,15 +67,37 @@ function CreateOrder() {
           </div>
         </div>
 
-        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative mb-5 flex flex-col gap-2 sm:flex-row sm:items-center">
           <label className="sm:basis-40">Address</label>
-          <div className="grow">
+          <div className="relative grow">
             <input
               className="input w-full"
               type="text"
               name="address"
               required
+              defaultValue={
+                addressStatus === 'loading' ? 'Loading...' : address
+              }
+              disabled={addressStatus === 'loading'}
             />
+
+            {addressStatus === 'error' && (
+              <p className="mt-2 rounded-md bg-red-100 p-2 text-xs text-red-700">
+                {errorAddress || 'Error fetching User Address'}
+              </p>
+            )}
+
+            <span className=" absolute end-0 top-[3px] me-[3px] sm:end-[3px] sm:top-[3px] sm:me-[2px]">
+              <Button
+                onClick={(e) => {
+                  e.preventDefault();
+                  dispatch(fetchAddress());
+                }}
+                type="small"
+              >
+                Get Position
+              </Button>
+            </span>
           </div>
         </div>
 
@@ -87,7 +117,11 @@ function CreateOrder() {
 
         <div>
           <input type="hidden" name="cart" value={JSON.stringify(cart)} />
-          <Button disabled={isSubmitting} type="primary">
+          <input type="hidden" name="address" value={address} />
+          <Button
+            disabled={isSubmitting || addressStatus === 'loading'}
+            type="primary"
+          >
             {isSubmitting
               ? 'Placing order....'
               : `Order now for ${formatCurrency(
